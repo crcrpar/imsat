@@ -1,0 +1,14 @@
+gpu: 0
+root: '/mnt/dataset/DeepFashion/CategoryAndAttribute/img'
+item_ids: 'item_list.csv'
+n_bit: 32
+xi: 10
+Ip: 1
+lam: 0.1
+seed: '0'
+nearest: '{}th_neighbor.txt'
+num_query: 1000
+K: 10
+batch_size: 32
+epoch: 50
+result: '/mnt/log/imsat/result'

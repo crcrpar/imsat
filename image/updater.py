@@ -7,10 +7,17 @@ from chainer.dataset import convert
 
 class IMSAT_HASHUpdater(chainer.training.StandardUpdater):
 
-    def __init__(self, iterator, optimizer, converter=convert.concat_examples,
-                 device=None, loss_func=None):
-        super(IMSAT_HASHUpdater, self).__init__(iterator, optimizer, converter=converter,
-                                                device=device, loss_func=loss_func)
+    def __init__(self,
+                 iterator,
+                 optimizer,
+                 converter=convert.concat_examples,
+                 device=None,
+                 loss_func=None):
+        super(IMSAT_HASHUpdater, self).__init__(iterator,
+                                                optimizer,
+                                                converter=converter,
+                                                device=device,
+                                                loss_func=loss_func)
 
     def update_core(self):
         batch, index = self._iterators['main'].next()

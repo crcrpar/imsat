@@ -4,6 +4,7 @@ import yaml
 
 import numpy as np
 import chainer
+from dataset import PreprocessDataset
 
 
 def compute_mean(dataset):
@@ -21,8 +22,10 @@ def main():
     with open('compute_mean.yml', 'r') as f:
         conf = yaml.load(f)
     root = conf['root']
-    files = os.listdir(root)
-    dataset = chainer.datasets.ImageDataset(files, root)
+    files = pd.read_csv(conf['item_ids'])
+    files = files.as_matrix(columns=['item_id'])
+    files = list(files)
+    dataset = PreprocessDataset(files, root, 227)
     mean = compute_mean(dataset)
     np.save(conf['out'], mean)
 
