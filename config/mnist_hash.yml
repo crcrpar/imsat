@@ -1,0 +1,14 @@
+gpu: -1 
+lam: 0.1
+prop_eps: 0.25
+n_bit: 16
+seed: '0'
+dataset: 'mnist'
+nearest: '{}th_neighbor.txt'
+num_query: 1000
+K: 10
+batch_size: 250
+epoch: 50
+xi: 10
+Ip: 1
+result: 'result'

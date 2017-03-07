@@ -1,9 +1,13 @@
-import argparse, sys
+#!/usr/bin/env python
+# coding: utf-8
+from __future__ import print_function
+import argparse
+import sys
 import numpy as np
 import chainer
 import chainer.functions as F
-from chainer import FunctionSet, Variable, optimizers, cuda, serializers
-from munkres import Munkres, print_matrix
+from chainer import Variable, optimizers
+from munkres import Munkres
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, help='which gpu device to use', default=1)
@@ -19,21 +23,22 @@ args = parser.parse_args()
 
 if args.dataset == 'mnist':
     sys.path.append('mnist')
-    from load_mnist import *
+    from load_mnist_bak import load_mnist_whole
 
     whole = load_mnist_whole(PATH='mnist/', scale=1.0 / 128.0, shift=-1.0)
 else:
-    print 'The dataset is not supported.'
+    print('The dataset is not supported.')
     raise NotImplementedError
 
 n_data = len(whole.data)
 n_class = np.max(whole.label) + 1
-print n_class
+print('num of class: {}'.format(n_class))
 dim = whole.data.shape[1]
 
-print 'use gpu'
-chainer.cuda.get_device(args.gpu).use()
-xp = cuda.cupy
+if args.gpu > 0:
+    print('use gpu')
+    chainer.cuda.get_device(args.gpu).use()
+xp = chainer.cuda.cupy if args.gpu > 0 else np
 hidden_list = map(int, args.hidden_list.split('-'))
 
 
@@ -67,7 +72,7 @@ def vat(forward, distance, x, eps_list, xi=10, Ip=1):
     y = forward(Variable(x))
     y.unchain_backward()
 
-    d = xp.random.normal(size=x.shape, dtype=np.float32)
+    d = xp.random.normal(size=x.shape).astype(np.float32)
     d = d / xp.sqrt(xp.sum(d ** 2, axis=1)).reshape((x.shape[0], 1))
     for ip in range(Ip):
         d_var = Variable(d.astype(np.float32))
@@ -84,6 +89,7 @@ def vat(forward, distance, x, eps_list, xi=10, Ip=1):
 
 
 class Encoder(chainer.Chain):
+
     def __init__(self):
         super(Encoder, self).__init__(
             l1=F.Linear(dim, hidden_list[0], wscale=0.1),
@@ -111,10 +117,10 @@ def loss_unlabeled(x, eps_list):
 
 def loss_test(x, t):
     prob = F.softmax(enc(x, test=True)).data
-    pmarg = cuda.to_cpu(xp.sum(prob, axis=0) / len(prob))
+    pmarg = xp.sum(prob, axis=0) / len(prob)
     ent = np.sum(-pmarg * np.log(pmarg + 1e-8))
-    pred = cuda.to_cpu(np.argmax(prob, axis=1))
-    tt = cuda.to_cpu(t.data)
+    pred = np.argmax(prob, axis=1)
+    tt = t.data
 
     m = Munkres()
     mat = np.zeros((n_class, n_class))
@@ -141,7 +147,6 @@ def loss_equal(enc, x):
 
 
 enc = Encoder()
-enc.to_gpu()
 
 o_enc = optimizers.Adam(alpha=0.002, beta1=0.9)
 o_enc.setup(enc)
@@ -153,7 +158,7 @@ n_epoch = 50
 nearest_dist = np.loadtxt(args.dataset + '/10th_neighbor.txt').astype(np.float32)
 
 for epoch in range(n_epoch):
-    print epoch
+    print('epoch:', epoch)
 
     sum_loss_entmax = 0
     sum_loss_entmin = 0
@@ -167,7 +172,7 @@ for epoch in range(n_epoch):
         sum_loss_entmin += loss_eq1.data
         sum_loss_entmax += loss_eq2.data
 
-        loss_ul = loss_unlabeled(Variable(x_u), cuda.to_gpu(nearest_dist[ind]))
+        loss_ul = loss_unlabeled(Variable(x_u), nearest_dist[ind])
         o_enc.zero_grads()
         (loss_ul + args.lam * loss_eq).backward()
         o_enc.update()
@@ -176,12 +181,12 @@ for epoch in range(n_epoch):
 
         loss_ul.unchain_backward()
 
-    print 'entmax ', sum_loss_entmax / (n_data / batchsize_ul)
-    print 'entmin ', sum_loss_entmin / (n_data / batchsize_ul)
-    print 'vatt ', vatt / (n_data / batchsize_ul)
+    print('entmax ', sum_loss_entmax / (n_data / batchsize_ul))
+    print('entmin ', sum_loss_entmin / (n_data / batchsize_ul))
+    print('vatt ', vatt / (n_data / batchsize_ul))
 
-    x_ul, t_ul = cuda.to_gpu(whole.data), cuda.to_gpu(whole.label)
+    x_ul, t_ul = whole.data, whole.label
     acc, ment = loss_test(Variable(x_ul, volatile=True), Variable(t_ul, volatile=True))
-    print "ment: ", ment
-    print "accuracy: ", acc
+    print("ment: ", ment)
+    print("accuracy: ", acc)
     sys.stdout.flush()

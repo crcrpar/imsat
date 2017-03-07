@@ -1,0 +1,7 @@
+*.pyc
+
+__pycache__/
+
+result/
+
+mnist/mldata/mnist-original.mat

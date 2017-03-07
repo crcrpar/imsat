@@ -1,0 +1,2 @@
+root: '/mnt/dataset/iqon/'
+out: 'mean.npy'

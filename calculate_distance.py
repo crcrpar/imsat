@@ -1,52 +1,47 @@
-import argparse
-import sys
-import cPickle as pickle
-import datetime, math, sys, time
+#!/usr/bin/env python
+# coding: utf-8
+from __future__ import print_function
+import os
 
-from sklearn.datasets import fetch_mldata
 import numpy as np
-import cupy as cp
-
 import chainer
-import chainer.functions as F
-import chainer.links as L
-from chainer import FunctionSet, Variable, optimizers, cuda, serializers
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--gpu', type=int, help = 'which gpu device to use', default = 1)
-parser.add_argument('--dataset', type=str, default = 'mnist')
-
-args = parser.parse_args()
-
-chainer.cuda.get_device(args.gpu).use()
-
-if args.dataset == 'mnist':
-    sys.path.append('mnist')
-    from load_mnist import *
-    whole = load_mnist_whole(PATH = 'mnist/', scale=1.0/128.0, shift=-1.0)
-else:
-    print 'The dataset is not supported.'
-    exit(-1)
-
-data = cuda.to_gpu(whole.data)
 
 
-num_data = [10]
+def calculate_distance(data, _num_data, dst, gpu=-1):
+    """ Calculate distance
 
-print num_data
+        Args:
+            data: to process
+            _num_data: how many nearest items to save
+    """
+    if gpu >= 0:
+        chainer.cuda.get_device(gpu).use()
+    xp = chainer.cuda.cupy if gpu >= 0 else np
+    if not isinstance(_num_data, list):
+        num_data = [_num_data]
+    dist_list = [[] for i in range(len(num_data))]
 
-dist_accum = 0
-dist_list = [[] for i in range(len(num_data))]
+    for i in range(len(data)):
+        if i % 1000 == 0:
+            print('processing {}th data'.format(i))
+        dist = xp.sqrt(xp.sum((data - data[i]) ** 2, axis=1))
+        dist[i] = 1000
+        sorted_dist = np.sort(dist)
+        for j in range(len(num_data)):
+            dist_list[j].append(sorted_dist[num_data[j]])
+    for i in range(len(num_data)):
+        np.savetxt(dst.format(num_data[i]))
 
-for i in range(len(data)):
-	if i % 1000 == 0:
-		print i
-	dist = cp.sqrt(cp.sum((data - data[i])**2, axis = 1))
-	dist[i] = 1000
-	sorted_dist = np.sort(cuda.to_cpu(dist))
-	for j in range(len(num_data)):
-		dist_list[j].append(sorted_dist[num_data[j]])
 
-for i in range(len(num_data)):
-	np.savetxt(args.dataset + '/' + str(num_data[i]) + 'th_neighbor.txt', np.array(dist_list[i]))
+def main():
+    train, test = chainer.datasets.get_mnist(scale=2.0)
+    x_train = np.asarray([i[0] for i in train], dtype=np.float32)
+    x_test = np.asarray([i[0] for i in test], dtype=np.float32)
+    x = np.concatenate((x_train, x_test), axis=0)
+    n_data = 10
+    dst = os.path.join('mnist', '{}th_neighbor.txt')
+    calculate_distance(x, n_data, dst)
 
+
+if __name__ == '__main__':
+    main()
