@@ -1,53 +1,76 @@
-from __future__ import print_function
+#!/usr/bin/env python
+# coding: utf-8
+import os
+import random
 
 import numpy
+try:
+    from PIL import Image
+    available = True
+except ImportError as e:
+    available = False
+    _import_error = e
+
 import chainer
+from chainer.datasets import ImageDataset
 
 
-class IMSATIterator(chainer.iterators.SerialIterator):
+def _read_image_as_array(size, path, dtype):
+    f = Image.open(path)
+    try:
+        image = numpy.asarray(f, dtype=dtype)
+    finally:
+        if hasattr(f, 'close'):
+            f.close()
+    return image
 
-    def __init__(self, dataset, batch_size, repeat=True, shuffle=True):
-        super(IMSATIterator, self).__init__(dataset, batch_size, repeat=repeat, shuffle=shuffle)
-        self._N = len(self.dataset)
 
-    def __next__(self):
-        if not self._repeat and self.epoch > 0:
-            raise StopIteration
+class Dataset(ImageDataset):
 
-        i = self.current_position
-        i_end = i + self.batch_size
-        N = len(self.dataset)
+    def __init__(self, paths, root='.', dtype=numpy.float32):
+        self.size = 227
+        super(Dataset, self).__init__(paths, root, dtype)
 
-        if self._order is None:
-            batch = self.dataset[i:i_end]
-            index = list(range(i, i_end))
+    def get_example(self, i):
+        path = os.path.join(self._root, self._paths[i])
+        image = _read_image_as_array(self.size, path, self._dtype)
+
+        if image.ndim == 2:
+            image = image[:, :, numpy.newaxis]
+        return image.transpose(2, 0, 1)
+
+
+class PreprocessDataset(chainer.dataset.DatasetMixin):
+
+    def __init__(self, path, root, crop_size=227, mean=None, random=False):
+        self.base = chainer.datasets.ImageDataset(path, root)
+        if mean is not None:
+            self.mean = mean.astype('f')
         else:
-            batch = [self.dataset[index] for index in self._order[i:i_end]]
-            index = self._order[i:i_end]
+            self.mean = None
+        self.crop_size = crop_size
+        self.random = random
 
-        if i_end >= N:
-            if self._repeat:
-                rest = i_end - N
-                if self._order is not None:
-                    numpy.random.shuffle(self._order)
-                if rest > 0:
-                    if self._order is None:
-                        batch += list(self.dataset[:rest])
-                        index += list(range(rest))
-                    else:
-                        batch += [self.dataset[index]
-                                  for index in self._order[:rest]]
-                        index += [index for index in self._order[:rest]]
-                self.current_position = rest
-            else:
-                self.current_position = N
+    def __len__(self):
+        return len(self.base)
 
-            self.epoch += 1
-            self.is_new_epoch = True
+    def get_example(self, i):
+        crop_size = self.crop_size
+
+        image = self.base[i]
+        _, h, w = image.shape
+
+        if self.random:
+            top = random.randint(0, h - crop_size - 1)
+            left = random.randint(0, w - crop_size - 1)
+            if random.randint(0, 1):
+                image = image[:, :, ::-1]
         else:
-            self.is_new_epoch = False
-            self.current_position = i_end
-
-        return (batch, index)
-
-    next = __next__
+            top = (h - crop_size) // 2
+            left = (w - crop_size) // 2
+        bottom = top + crop_size
+        right = left + crop_size
+        image = image[:, top:bottom, left:right]
+        if self.mean is not None:
+            image -= self.mean[:, top:bottom, left:right]
+        return image

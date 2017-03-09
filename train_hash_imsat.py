@@ -13,8 +13,10 @@ from chainer.training import extensions
 
 from models.hash_mnist import Encoder
 from models.hash_mnist import HashWrapper
-from dataset import IMSATIterator
+from dataset import PreprocessDataset
 from updater import IMSAT_HASHUpdater
+from iterators.multi_iterator import MultiDatasetIterator
+from iterators.paralleliterator import ParallelMultiDatasetIterator
 
 
 def main():
@@ -28,22 +30,20 @@ def main():
     print('# SETTING #')
     print(json.dumps(conf, indent=2))
     batch_size = conf['batch_size']
-    n_bit = conf['n_bit']
     N_query = conf['num_query']
     if conf['seed']:
         np.random.seed(int(conf['seed']))
     if conf['gpu'] >= 0:
         encoder.to_gpu()
-    train, test = chainer.datasets.get_mnist(scale=2.0)
-    x_train, x_test = [i[0] for i in train], [i[0] for i in test]
-    y_train, y_test = [i[1] for i in train], [i[1] for i in test]
-    x = np.concatenate((np.asarray(x_train), np.asarray(x_test))).astype(np.float32)
-    print('x.shape: {}'.format(x.shape))
-    x = list(x)
-    y = np.concatenate((np.asarray(y_train), np.asarray(y_test))).astype(np.int32)
-    dataset = chainer.datasets.TupleDataset((x, y))
-    iterator = IMSATIterator(x, batch_size=batch_size)
-    # iterator = IMSATIterator(dataset, batch_size=batch_size)
+
+    if conf['root']:
+        files = os.listdir(conf['root'])
+    else:
+        msg = 'set dataset dir'
+        raise Exception(msg)
+    dataset = PreprocessDataset(files, conf['root'], crop_size=227)
+    augmented_dataset = PreprocessDataset(files, conf['root'], random=True)
+    iterator = MultiDatasetIterator(dataset, augmented_dataset, batch_size=batch_size)
     updater = IMSAT_HASHUpdater(iterator, optimizer)
     trainer = training.Trainer(updater, out=conf['result'])
     trainer.extend(extensions.LogReport(keys=['conditional_entropy', 'marginal_entropy', 'pairwise_mi', 'loss_info']))
