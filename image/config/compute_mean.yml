@@ -1,3 +1,0 @@
-root: '/mnt/dataset/iqon/'
-out: 'mean.npy'
-item_ids: 'item_list.csv'
