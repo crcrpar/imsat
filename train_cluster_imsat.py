@@ -13,10 +13,14 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
+from models.cluster_mnist import Encoder
+from models.cluster_mnist import ClusterWrapper
 from dataset import RotateDataset
+
+
 
 def main():
     encoder = ClusterWrapper()
     optimizer = chaienr.optimizers.Adam()
     optimizer.setup(encoder)
-
+    

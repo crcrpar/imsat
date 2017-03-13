@@ -36,3 +36,17 @@ class IMSAT_HASHUpdater(chainer.training.StandardUpdater):
                 'loss_info': loss_info,
                 'vat': loss_ul
                 }, model)
+
+
+class IMSAT_CLUSTERUpdater(chainer.training.StandardUpdater):
+
+    def __init__(self, iterator, optimizer, converter=convert.concat_examples, device=None, loss_func=None):
+        super(IMSAT_HASHUpdater, self).__init__(iterator, optimizer, converter=converter, device=device, loss_func=loss_func)
+
+    def update_core(self):
+        batch, index = self._iterators['main'].next()
+        in_arrays = self.converter(batch, self.device)
+        x = chainer.Variable(in_arrays)
+        optimizer = self._optimizers['main']
+        model = optimizer.target
+
