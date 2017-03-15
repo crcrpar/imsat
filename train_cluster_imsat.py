@@ -18,40 +18,9 @@ from updater import IMSAT_CLUSTERUpdater
 
 class ClusterEvaluator(extensions.Evaluator):
 
-    def __init__(self, iterator, target, converter=chainer.dataset.concat_examples,
-                 device=None, eval_hook=None, eval_func=None):
-        if not hasattr(target, 'loss_test'):
-            return False
-        super(ClusterEvaluator, self).__init__(
-            iterator, target, converter, device, eval_hook, eval_func)
-
     def evaluate(self):
-        iterator = self._iterators['main']
-        target = self._targets['main']
-        eval_func = self.eval_func or target.loss_test
-
-        if self.eval_hook:
-            self.eval_hook(self)
-        it = copy.copy(iterator)
-        summary = chainer.reporter.DictSummary()
-
-        for batch in it:
-            observation = {}
-            with chainer.reporter.report_scope(observation):
-                in_arrays = self.converter(batch, self.device)
-            if isinstance(in_arrays, tuple):
-                in_vars = tuple(chainer.Variable(x, volatile='on')
-                                for x in in_arrays)
-                eval_func(*in_vars)
-            elif isinstance(in_arrays, dict):
-                in_vars = {key: chainer.Variable(x, volatile='on')
-                           for key, x in six.iteritems(in_arrays)}
-                eval_func(**in_vars)
-            else:
-                in_var = chainer.Variable(in_arrays, volatile='on')
-                eval_func(in_var)
-
-            summary.add(observation)
+        ret = super(ClusterEvaluator, self).evavluate()
+        return ret
 
 
 def main():
