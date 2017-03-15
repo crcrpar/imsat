@@ -35,8 +35,8 @@ class Encoder(chainer.Chain):
 class HashWrapper(Encoder):
     """ This class is wrapper of chainer.Chain for IMSAT"""
 
-    def __init__(self):
-        super(HashWrapper, self).__init__()
+    def __init__(self, in_size=784, h0=1200, h1=1200, out_size=16, prop_eps=1.0, lam=0.1):
+        super(HashWrapper, self).__init__(in_size, h0, h1, out_size, prop_eps, lam)
 
     def aux(self, x):
         prob = self.forward(x, _train=True, _update=False)
