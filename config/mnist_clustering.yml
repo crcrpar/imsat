@@ -1,10 +1,8 @@
-gpu: -1.0
+gpu: -1
 lam: 0.1
 mu: 4.0
-epsilon: 0.25
+epsilon: 1.0
 epoch: 25
 batch_size: 250
 result: 'result'
-dataset: 'mnist'
-nearest: '{}th_neighbor.txt'
 K: 10
