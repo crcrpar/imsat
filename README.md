@@ -1,7 +1,6 @@
 **NOTE**
-The `renewal` branch is up-to-date.
-The reason I do not merge my main working branch `renewal` to master is just I want to reserve original implementation.
-So, if you want to see my working branch kindly, visit https://github.com/crcrpar/imsat/tree/renewal
+The main working branch is [`renewal`](https://github.com/crcrpar/imsat/tree/renewal).
+The reason I do not merge is just I want to reserve original implementation.
 
 # Information Maximizing Self Augmented Training (IMSAT)
 This is a reproducing code for IMSAT [1]. IMSAT is a method for discrete representation learning using deep neural networks. It can be applied to clustering and hash learning to achieve the state-of-the-art results. This is the work performed while Weihua Hu was interning at Preferred Networks.
