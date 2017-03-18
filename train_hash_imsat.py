@@ -44,7 +44,7 @@ def main():
     dataset = PreprocessDataset(files, conf['root'], crop_size=227)
     augmented_dataset = PreprocessDataset(files, conf['root'], random=True)
     iterator = MultiDatasetIterator(dataset, augmented_dataset, batch_size=batch_size)
-    updater = IMSAT_HASHUpdater(iterator, optimizer)
+    updater = IMSAT_HASHUpdater(iterator, (conf['epoch'], 'epoch'), optimizer)
     trainer = training.Trainer(updater, out=conf['result'])
     trainer.extend(extensions.LogReport(keys=['conditional_entropy', 'marginal_entropy', 'pairwise_mi', 'loss_info']))
     trainer.extend(extensions.PrintReport(['epoch', 'iteration', 'main/loss_info']), trigger=(50, 'iteration'))

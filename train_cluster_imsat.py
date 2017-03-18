@@ -41,7 +41,7 @@ def main():
     updater = IMSAT_CLUSTERUpdater(iterator, optimizer, device=conf['gpu'])
     print_interval = (25), 'iteration'
     snapshot_interval = (1), 'epoch'
-    trainer = training.Trainer(updater, out=conf['result'])
+    trainer = training.Trainer(updater, (conf['epoch'], 'epoch'), out=conf['result'])
     trainer.extend(extensions.LogReport(
         keys=['max_entropy', 'min_entropy', 'vat']))
     trainer.extend(extensions.observe_lr(), trigger=print_interval)
